@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FMB Large Scale Plotter & Distance Matrix (A2/A3 Support)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 25px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        /* 🏷️ டாப் ரைட் கார்னர் பெயர் */
+        .surveyor-top-tag {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            text-align: right;
+            font-size: 0.95rem;
+            color: #67e8f9;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .surveyor-top-tag span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        header {
+            text-align: left;
+            margin-bottom: 25px;
+            padding-right: 200px;
+        }
+
+        header h1 {
+            font-size: 1.7rem;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        /* 🎨 வரைபடப் பலகை (A2/A3 Large Scale Canvas) */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2.5px solid #000000;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 550px;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-box label {
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .input-box input {
+            background: #020617;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            outline: none;
+        }
+
+        .side-selector {
+            display: flex;
+            background: #020617;
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid var(--border);
+            grid-column: span 2;
+            margin-bottom: 15px;
+        }
+
+        .side-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .side-btn.active {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        button.action-btn {
+            padding: 15px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-add { background: var(--primary); color: white; }
+        .btn-add:hover { background: var(--primary-hover); }
+        .btn-clear { background: #475569; color: white; }
+
+        .section-title {
+            font-size: 1.2rem;
+            margin: 20px 0 10px 0;
+            color: #e2e8f0;
+            border-left: 4px solid var(--primary);
+            padding-left: 10px;
+        }
+
+        /* 📊 டேபிள் கன்டைனர் */
+        .table-container {
+            max-height: 300px;
+            overflow-x: auto;
+            overflow-y: auto;
+            border: 2px solid #000000;
+            border-radius: 6px;
+            background: #ffffff;
+            margin-bottom: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            text-align: center;
+            color: #000000;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            border: 1px solid #000000;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #f1f5f9;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        .diagonal-cell {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .matrix-dist {
+            color: #ff0000;
+            font-weight: bold;
+        }
+
+        /* 🖨️ பிரிண்ட் மற்றும் நேரடி பிரவுசர் PDF கன்வெர்ஷன் செட்டிங்ஸ் */
+        @media print {
+            body { background: white !important; color: black !important; padding: 0 !important; }
+            .container { box-shadow: none !important; border: none !important; max-width: 100% !important; background: white !important; padding-top: 10px !important; }
+            .form-group, .side-selector, .btn-group, header p { display: none !important; }
+            
+            .surveyor-top-tag {
+                color: black !important;
+                top: 10px !important;
+                right: 10px !important;
+            }
+            .surveyor-top-tag span { color: #475569 !important; }
+
+            .table-container { 
+                max-height: none !important; 
+                overflow-y: visible !important; 
+                overflow-x: visible !important;
+                border: none !important;
+            }
+            
+            table { width: 100% !important; page-break-inside: auto !important; }
+            tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+            .canvas-container { border: 2.5px solid #000 !important; }
+            canvas { height: 650px !important; } /* டவுன்லோடில் படம் இன்னும் பெரிதாகத் தெரிய */
+            .section-title { color: black !important; border-left: 4px solid black; margin-top: 35px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="fmbReportContainer">
+        <div class="surveyor-top-tag">
+            M. Anbarasan
+            <span>Surveyor, Orathanad</span>
+        </div>
+
+        <header>
+            <h1>FMB Field Sketch Report</h1>
+        </header>
+
+        <div class="canvas-container">
+            <canvas id="fmbCanvas"></canvas>
+        </div>
+
+        <div class="form-group">
+            <div class="input-box">
+                <label for="chainage">Chainage (CH) - மீட்டர்</label>
+                <input type="number" id="chainage" step="0.001" placeholder="0.0" autocomplete="off">
+            </div>
+            <div class="input-box">
+                <label for="offset">Offset (OS) - மீட்டர்</label>
+                <input type="number" id="offset" step="0.001" placeholder="0.0" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="side-selector">
+            <button type="button" class="side-btn active" id="btnLeft" onclick="setSide('L')">LEFT (இடது)</button>
+            <button type="button" class="side-btn" id="btnRight" onclick="setSide('R')">RIGHT (வலது)</button>
+        </div>
+
+        <div class="btn-group">
+            <button class="action-btn btn-add" onclick="addPoint()">Add Point</button>
+            <button class="action-btn btn-clear" onclick="clearAll()">Clear Map</button>
+            <button class="action-btn" style="grid-column: span 2; background: var(--success); color: white;" onclick="downloadDirectPDF()">📥 Download High-Scale FMB PDF</button>
+        </div>
+
+        <div class="section-title">அடிப்படை அளவீடுகள் (Field Measurements)</div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Point</th>
+                        <th>Chainage (m)</th>
+                        <th>Offset (m)</th>
+                        <th>Side</th>
+                    </tr>
+                </thead>
+                <tbody id="pointsTableBody">
+                    <tr><td colspan="4" style="color: #000000;">தரவுகள் எதுவும் இல்லை</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">ஒவ்வொரு புள்ளிக்கும் இடைப்பட்ட தொலைவு மேட்ரிக்ஸ் (Distance Matrix Table)</div>
+        <div class="table-container">
+            <table id="matrixTable">
+                <thead>
+                    <tr>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody id="matrixTableBody">
+                    <tr><td style="color: #000000;">புள்ளிகளை உள்ளிட்டதும் மேட்ரிக்ஸ் அட்டவணை இங்கு உருவாகும்.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let points = [];
+        let currentSide = 'L';
+
+        const canvas = document.getElementById('fmbCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function initCanvas() {
+            const rect = canvas.parentNode.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = 550 * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            draw();
+        }
+
+        window.addEventListener('resize', initCanvas);
+
+        function setSide(side) {
+            currentSide = side;
+            document.getElementById('btnLeft').classList.toggle('active', side === 'L');
+            document.getElementById('btnRight').classList.toggle('active', side === 'R');
+        }
+
+        function addPoint() {
+            const chInput = document.getElementById('chainage');
+            const osInput = document.getElementById('offset');
+            const ch = parseFloat(chInput.value);
+            const os = parseFloat(osInput.value);
+
+            if (isNaN(ch) || isNaN(os)) {
+                alert("தயவுசெய்து சரியான அளவுகளை உள்ளிடவும்!");
+                return;
+            }
+
+            points.push({ ch: ch, os: os, side: currentSide });
+            points.sort((a, b) => a.ch - b.ch);
+
+            chInput.value = '';
+            osInput.value = '';
+            chInput.focus();
+
+            updateTablesAndDraw();
+        }
+
+        function clearAll() {
+            points = [];
+            updateTablesAndDraw();
+        }
+
+        function calculateDistance(p1, p2) {
+            let chDiff = p2.ch - p1.ch;
+            let y1 = p1.side === 'L' ? p1.os : -p1.os;
+            let y2 = p2.side === 'L' ? p2.os : -p2.os;
+            return Math.sqrt((chDiff * chDiff) + ((y2 - y1) * (y2 - y1)));
+        }
+
+        function updateTablesAndDraw() {
+            const tbody = document.getElementById('pointsTableBody');
+            tbody.innerHTML = '';
+            
+            if (points.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color: #000000;">தரவுகள் எதுவும் இல்லை</td></tr>`;
+            } else {
+                points.forEach((p, index) => {
+                    tbody.innerHTML += `<tr>
+                        <td><strong>P${index + 1}</strong></td>
+                        <td>${p.ch.toFixed(3)}</td>
+                        <td>${p.os.toFixed(3)}</td>
+                        <td>${p.side === 'L' ? 'Left' : 'Right'}</td>
+                    </tr>`;
+                });
+            }
+
+            const matrixHeadRow = document.querySelector('#matrixTable thead tr');
+            const matrixTbody = document.getElementById('matrixTableBody');
+            
+            matrixHeadRow.innerHTML = `<th>Points</th>`;
+            matrixTbody.innerHTML = '';
+
+            if (points.length === 0) {
+                matrixTbody.innerHTML = `<tr><td>புள்ளிகளை உள்ளிட்டதும் மேட்ரிக்ஸ் அட்டவணை இங்கு உருவாகும்.</td></tr>`;
+            } else {
+                points.forEach((_, index) => {
+                    matrixHeadRow.innerHTML += `<th>P${index + 1}</th>`;
+                });
+
+                points.forEach((pRow, rowIndex) => {
+                    let rowHtml = `<tr><td><strong>P${rowIndex + 1}</strong></td>`;
+                    
+                    points.forEach((pCol, colIndex) => {
+                        if (rowIndex === colIndex) {
+                            rowHtml += `<td class="diagonal-cell">0.000</td>`;
+                        } else {
+                            let dist = calculateDistance(pRow, pCol);
+                            rowHtml += `<td class="matrix-dist">${dist.toFixed(3)}</td>`;
+                        }
+                    });
+                    
+                    rowHtml += `</tr>`;
+                    matrixTbody.innerHTML += rowHtml;
+                });
+            }
+
+            draw();
+        }
+
+        function draw() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+
+            const padding = 60;
+            const startX = padding;
+            const endX = w - padding;
+            const centerY = h / 2;
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.8;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(startX, centerY);
+            ctx.lineTo(endX, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            if (points.length === 0) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = '15px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText("தரவுகளை உள்ளிட்டதும் பெரிய அளவிலான (A3/A2 Scale) வரைபடம் தோன்றும்.", w / 2, centerY - 15);
+                return;
+            }
+
+            let maxCh = Math.max(...points.map(p => p.ch), 1); 
+            let maxOs = Math.max(...points.map(p => p.os), 1);
+            let scale = Math.min((endX - startX) / maxCh, (centerY - padding) / maxOs);
+
+            let boundaryPoints = [];
+
+            points.forEach((p, index) => {
+                let ptX = startX + (p.ch * scale);
+                let ptY = p.side === 'L' ? centerY - (p.os * scale) : centerY + (p.os * scale);
+                boundaryPoints.push({x: ptX, y: ptY});
+
+                ctx.strokeStyle = '#8c8c8c';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(ptX, centerY);
+                ctx.lineTo(ptX, ptY);
+                ctx.stroke();
+
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(ptX, ptY, 5, 0, 2 * Math.PI);
+                ctx.fill();
+
+                ctx.fillStyle = '#ff0000';
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`P${index + 1}`, ptX, p.side === 'L' ? ptY - 12 : ptY + 18);
+            });
+
+            if (boundaryPoints.length > 0) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3.2;
+                ctx.beginPath();
+                ctx.moveTo(boundaryPoints[0].x, boundaryPoints[0].y);
+                
+                for (let i = 1; i < boundaryPoints.length; i++) {
+                    ctx.lineTo(boundaryPoints[i].x, boundaryPoints[i].y);
+                }
+                ctx.stroke();
+
+                ctx.font = 'bold 12px Arial';
+                for (let i = 0; i < boundaryPoints.length - 1; i++) {
+                    let next = i + 1;
+                    let midX = (boundaryPoints[i].x + boundaryPoints[next].x) / 2;
+                    let midY = (boundaryPoints[i].y + boundaryPoints[next].y) / 2;
+                    let dist = calculateDistance(points[i], points[next]);
+
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillText(`${dist.toFixed(2)}m`, midX, midY - 6);
+                }
+            }
+        }
+
+        // 📥 100% ஆஃப்லைன் நேரடி PDF டவுன்லோடு மெத்தட்
+        function downloadDirectPDF() {
+            if (points.length === 0) {
+                alert("டவுன்லோடு செய்ய தரவுகள் எதுவும் இல்லை!");
+                return;
+            }
+            // மொபைல் பிரவுசரின் சொந்த கன்வெர்ஷன் இன்ஜினை இயக்குகிறோம்
+            window.print();
+        }
+
+        initCanvas();
+    </script>
+</body>
+</html>
